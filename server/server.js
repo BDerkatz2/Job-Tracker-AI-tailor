@@ -1,12 +1,12 @@
 require('dotenv').config();
-console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '[set]' : '[not set]');
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? '[set]' : '[not set]');
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
 const path = require('path');
-const OpenAI = require('openai');
+const Groq = require('groq-sdk');
 
 const app = express();
 app.use(cors());
@@ -21,7 +21,7 @@ const pool = new Pool({
 });
 
 const PORT = process.env.PORT || 3001;
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Auth routes
 app.post('/api/auth/register', async (req, res) => {
@@ -82,7 +82,7 @@ app.delete('/api/jobs/:id', async (req, res) => {
   }
 });
 
-// AI suggestions (OpenAI)
+// AI suggestions (Groq - Llama 3.1 8B)
 app.post('/api/ai/suggestions', async (req, res) => {
   const { jobTitle, company, description, resume } = req.body;
   try {
@@ -90,8 +90,8 @@ app.post('/api/ai/suggestions', async (req, res) => {
     const coverPrompt = `Write a professional cover letter for the position of ${jobTitle} at ${company}, using the following job description and resume as context.\n\nJob Description:\n${description || 'Not provided'}\n\nResume:\n${resume || 'Not provided'}\n\nReturn only the cover letter.`;
 
     const [resumeCompletion, coverCompletion] = await Promise.all([
-      openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: resumePrompt }] }),
-      openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: coverPrompt }] })
+      groq.chat.completions.create({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: resumePrompt }] }),
+      groq.chat.completions.create({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: coverPrompt }] })
     ]);
 
     res.json({
