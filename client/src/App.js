@@ -5,9 +5,11 @@ import './App.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = process.env.PUBLIC_URL
-  ? process.env.PUBLIC_URL + '/pdf.worker.min.js'
-  : '/pdf.worker.min.js';
+if (pdfjsLib?.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = process.env.PUBLIC_URL
+    ? process.env.PUBLIC_URL + '/pdf.worker.min.js'
+    : '/pdf.worker.min.js';
+}
 
 function App() {
   const [jobs, setJobs] = useState([]);
