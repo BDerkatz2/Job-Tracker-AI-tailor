@@ -5,8 +5,8 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
-
-const fetch = require('node-fetch');
+const path = require('path');
+const OpenAI = require('openai');
 
 const app = express();
 app.use(cors());
@@ -21,6 +21,7 @@ const pool = new Pool({
 });
 
 const PORT = process.env.PORT || 3001;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Auth routes
 app.post('/api/auth/register', async (req, res) => {
@@ -81,53 +82,35 @@ app.delete('/api/jobs/:id', async (req, res) => {
   }
 });
 
-// AI suggestions
+// AI suggestions (OpenAI)
 app.post('/api/ai/suggestions', async (req, res) => {
   const { jobTitle, company, description, resume } = req.body;
   try {
-    // Tailored Resume
     const resumePrompt = `Rewrite the following resume to best match the job description for the position of ${jobTitle} at ${company}.\n\nJob Description:\n${description || 'Not provided'}\n\nResume:\n${resume || 'Not provided'}\n\nReturn only the tailored resume.`;
-    const resumeResponse = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.1:8b',
-        prompt: resumePrompt,
-        stream: false
-      })
-    });
-    if (!resumeResponse.ok) {
-      const errorText = await resumeResponse.text();
-      console.error('Ollama resume error:', errorText);
-      return res.status(500).json({ error: 'Ollama resume error', details: errorText });
-    }
-    const resumeData = await resumeResponse.json();
-    // Cover Letter
     const coverPrompt = `Write a professional cover letter for the position of ${jobTitle} at ${company}, using the following job description and resume as context.\n\nJob Description:\n${description || 'Not provided'}\n\nResume:\n${resume || 'Not provided'}\n\nReturn only the cover letter.`;
-    const coverResponse = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.1:8b',
-        prompt: coverPrompt,
-        stream: false
-      })
-    });
-    if (!coverResponse.ok) {
-      const errorText = await coverResponse.text();
-      console.error('Ollama cover letter error:', errorText);
-      return res.status(500).json({ error: 'Ollama cover letter error', details: errorText });
-    }
-    const coverData = await coverResponse.json();
+
+    const [resumeCompletion, coverCompletion] = await Promise.all([
+      openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: resumePrompt }] }),
+      openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: coverPrompt }] })
+    ]);
+
     res.json({
-      tailoredResume: resumeData.response,
-      coverLetter: coverData.response
+      tailoredResume: resumeCompletion.choices[0].message.content,
+      coverLetter: coverCompletion.choices[0].message.content
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to generate tailored content' });
   }
 });
+
+// Serve React build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

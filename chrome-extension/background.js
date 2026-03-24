@@ -1,7 +1,10 @@
 // background.js
+// TODO: Update SERVER_URL to your Render deployment URL after deploying
+const SERVER_URL = 'https://your-app-name.onrender.com';
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "saveToServer") {
-    fetch('http://localhost:3001/api/jobs', {
+    fetch(`${SERVER_URL}/api/jobs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request.data),
