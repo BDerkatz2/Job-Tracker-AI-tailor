@@ -16,7 +16,7 @@ A full-stack application for tracking job applications with a Kanban board, AI-p
 - Backend: Node.js + Express
 - Database: PostgreSQL
 - Authentication: JWT
-- AI: OpenAI API
+- AI: Ollama llama 3.1:8b
 - Extension: Chrome Extension
 
 ## Project Structure
@@ -29,7 +29,7 @@ A full-stack application for tracking job applications with a Kanban board, AI-p
 ### Prerequisites
 - Node.js
 - PostgreSQL
-- OpenAI API key
+- llama 3.1:8b
 
 ### Backend Setup
 1. cd server
