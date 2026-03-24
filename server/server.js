@@ -106,9 +106,15 @@ app.post('/api/ai/suggestions', async (req, res) => {
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  app.get('/{*splat}', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  const buildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(buildPath));
+
+  // Only serve index.html for client-side routes (not API calls or asset files).
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.includes('.')) {
+      return next();
+    }
+    return res.sendFile(path.join(buildPath, 'index.html'));
   });
 }
 
