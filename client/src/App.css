@@ -546,3 +546,80 @@
   white-space: pre-wrap;
   margin: 0;
 }
+
+.add-job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-job-form label {
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.add-job-form input,
+.add-job-form textarea,
+.add-job-form select {
+  width: 100%;
+  border: 1px solid #d7d7d7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #222;
+  background: #fff;
+}
+
+.add-job-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.add-job-form input:focus,
+.add-job-form textarea:focus,
+.add-job-form select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.add-job-error {
+  color: #c53030;
+  margin: 8px 0 0 0;
+  font-size: 14px;
+}
+
+.add-job-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.add-job-cancel,
+.add-job-submit {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-job-cancel {
+  background: #ececec;
+  color: #333;
+}
+
+.add-job-submit {
+  background: #4f6bed;
+  color: #fff;
+}
+
+.add-job-submit:disabled,
+.add-job-cancel:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

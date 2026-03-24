@@ -7,6 +7,17 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 function App() {
   const [jobs, setJobs] = useState([]);
   const [view, setView] = useState('kanban');
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [addJobLoading, setAddJobLoading] = useState(false);
+  const [addJobError, setAddJobError] = useState('');
+  const [newJob, setNewJob] = useState({
+    title: '',
+    company: '',
+    location: '',
+    url: '',
+    description: '',
+    status: 'saved'
+  });
   const [userResume, setUserResume] = useState('');
   const [userResumeType, setUserResumeType] = useState(''); // new: file type
   const [userResumeUrl, setUserResumeUrl] = useState(''); // new: file URL (for PDF/image)
@@ -32,6 +43,62 @@ function App() {
       setJobs(data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+    }
+  };
+
+  const resetNewJobForm = () => {
+    setNewJob({
+      title: '',
+      company: '',
+      location: '',
+      url: '',
+      description: '',
+      status: 'saved'
+    });
+    setAddJobError('');
+    setAddJobLoading(false);
+  };
+
+  const createJob = async () => {
+    if (!newJob.title.trim() || !newJob.company.trim()) {
+      setAddJobError('Job title and company are required.');
+      return;
+    }
+
+    setAddJobError('');
+    setAddJobLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newJob.title.trim(),
+          company: newJob.company.trim(),
+          location: newJob.location.trim(),
+          url: newJob.url.trim(),
+          description: newJob.description.trim(),
+          status: newJob.status
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add job');
+      }
+
+      if (data.job) {
+        setJobs(prev => [data.job, ...prev]);
+      } else {
+        await fetchJobs();
+      }
+
+      setShowAddJobModal(false);
+      resetNewJobForm();
+    } catch (error) {
+      setAddJobError(error.message || 'Could not save job. Please try again.');
+    } finally {
+      setAddJobLoading(false);
     }
   };
 
@@ -239,6 +306,97 @@ function App() {
   return (
     <div className="App">
       {/* AI Tailoring Modal (moved into return) */}
+      {showAddJobModal && (
+        <div className="modal-overlay" onClick={() => { setShowAddJobModal(false); resetNewJobForm(); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add Job</h3>
+              <button className="modal-close" onClick={() => { setShowAddJobModal(false); resetNewJobForm(); }}>x</button>
+            </div>
+            <div className="modal-body add-job-form">
+              <label htmlFor="job-title">Job Title *</label>
+              <input
+                id="job-title"
+                type="text"
+                placeholder="e.g. Software Engineer"
+                value={newJob.title}
+                onChange={e => setNewJob(prev => ({ ...prev, title: e.target.value }))}
+              />
+
+              <label htmlFor="job-company">Company *</label>
+              <input
+                id="job-company"
+                type="text"
+                placeholder="e.g. Acme Inc"
+                value={newJob.company}
+                onChange={e => setNewJob(prev => ({ ...prev, company: e.target.value }))}
+              />
+
+              <label htmlFor="job-description">Job Description</label>
+              <textarea
+                id="job-description"
+                rows={6}
+                placeholder="Paste full job description here"
+                value={newJob.description}
+                onChange={e => setNewJob(prev => ({ ...prev, description: e.target.value }))}
+              />
+
+              <label htmlFor="job-location">Location</label>
+              <input
+                id="job-location"
+                type="text"
+                placeholder="e.g. Remote, Boston, MA"
+                value={newJob.location}
+                onChange={e => setNewJob(prev => ({ ...prev, location: e.target.value }))}
+              />
+
+              <label htmlFor="job-url">Job URL</label>
+              <input
+                id="job-url"
+                type="url"
+                placeholder="https://company.com/careers/job-posting"
+                value={newJob.url}
+                onChange={e => setNewJob(prev => ({ ...prev, url: e.target.value }))}
+              />
+
+              <label htmlFor="job-status">Status</label>
+              <select
+                id="job-status"
+                value={newJob.status}
+                onChange={e => setNewJob(prev => ({ ...prev, status: e.target.value }))}
+              >
+                {statuses.map(status => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              {addJobError && <p className="add-job-error">{addJobError}</p>}
+
+              <div className="add-job-actions">
+                <button
+                  type="button"
+                  className="add-job-cancel"
+                  onClick={() => { setShowAddJobModal(false); resetNewJobForm(); }}
+                  disabled={addJobLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="add-job-submit"
+                  onClick={createJob}
+                  disabled={addJobLoading}
+                >
+                  {addJobLoading ? 'Saving...' : 'Add Job'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div className="modal-content" style={{ maxWidth: 900, width: '95vw', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -269,7 +427,7 @@ function App() {
                     setCoverLetter('');
                     setAiLoading(true);
                     try {
-                      const job = jobs.find(j => j.id == selectedJobId);
+                      const job = jobs.find(j => String(j.id) === selectedJobId);
                       const response = await fetch(`${API_BASE}/api/ai/suggestions`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -319,6 +477,7 @@ function App() {
         <div>
           <button onClick={() => setView('kanban')}>Kanban</button>
           <button onClick={() => setView('analytics')}>Analytics</button>
+          <button onClick={() => { resetNewJobForm(); setShowAddJobModal(true); }}>Add Job</button>
           <button onClick={() => setShowResumeUpload(true)}>Resume</button>
           <button onClick={() => setShowAIModal(true)}>AI Tailor</button>
         </div>
