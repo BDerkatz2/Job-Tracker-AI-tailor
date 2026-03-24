@@ -1,15 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 import './App.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
-
-if (pdfjsLib?.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = process.env.PUBLIC_URL
-    ? process.env.PUBLIC_URL + '/pdf.worker.min.js'
-    : '/pdf.worker.min.js';
-}
 
 function App() {
   const [jobs, setJobs] = useState([]);
@@ -142,6 +135,13 @@ function App() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
+          const pdfjsModule = await import('pdfjs-dist/legacy/build/pdf');
+          const pdfjsLib = pdfjsModule.default || pdfjsModule;
+          if (pdfjsLib?.GlobalWorkerOptions) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = process.env.PUBLIC_URL
+              ? process.env.PUBLIC_URL + '/pdf.worker.min.js'
+              : '/pdf.worker.min.js';
+          }
           console.log('PDF extraction: File loaded, starting extraction...');
           const typedarray = new Uint8Array(e.target.result);
           const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
